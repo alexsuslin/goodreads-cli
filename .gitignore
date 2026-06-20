@@ -1,0 +1,14 @@
+.env
+.pytest_cache/
+.pytest_tmp/
+.ruff_cache/
+.venv/
+.playwright-browsers/
+.goodreads-session.json
+tmp_*.toml
+tmp_debug/
+dist/
+build/
+*.egg-info/
+__pycache__/
+playwright/.local-browsers/
