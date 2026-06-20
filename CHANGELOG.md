@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Added
+- `goodreads current --json` for listing the authenticated user's currently-reading shelf
+
 ## 0.1.0 - 2026-06-20
 
 ### Added

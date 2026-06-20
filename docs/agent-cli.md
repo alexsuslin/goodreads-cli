@@ -74,6 +74,7 @@ The implementation uses a hybrid approach:
 Behavior notes:
 
 - `goodreads login` is required before mutation commands
+- `goodreads current` also requires the saved Goodreads session because it reads an authenticated shelf view
 - login is the most failure-prone step because Goodreads or Amazon may require CAPTCHA, 2FA, or UI-specific interaction
 - the CLI should return explicit operational errors rather than silently reporting success when a write cannot be verified
 - on Ubuntu without a GUI, install Chromium and its system dependencies before first use, for example with `python -m playwright install --with-deps chromium`
@@ -88,6 +89,39 @@ goodreads login --no-headless --json
 ```
 
 Use this command first to establish and save an authenticated session.
+
+### `current`
+
+```bash
+goodreads current --json
+```
+
+Returns the authenticated user's `currently-reading` shelf using the saved Goodreads session.
+
+Expected success shape:
+
+```json
+{
+  "ok": true,
+  "data": {
+    "shelf": "currently-reading",
+    "books": [
+      {
+        "id": "54493401",
+        "title": "Project Hail Mary",
+        "author": "Andy Weir",
+        "url": "https://www.goodreads.com/book/show/54493401-project-hail-mary",
+        "progress": {
+          "page": null,
+          "percent": null
+        }
+      }
+    ]
+  }
+}
+```
+
+If the shelf is empty, the command should still succeed and return `books: []`.
 
 ### `find`
 

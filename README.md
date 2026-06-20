@@ -9,6 +9,7 @@ Minimal Python CLI wrapper around Goodreads workflows for agent use.
 The project is intentionally small. It focuses on a stable set of agent-friendly commands that are cheap to call and cheap to parse:
 
 - `login`
+- `current`
 - `start`
 - `progress`
 - `finish`
@@ -32,6 +33,7 @@ The main use case is a remote agent running on Ubuntu on a VPS. Instead of givin
 
 ```bash
 goodreads login --json
+goodreads current --json
 goodreads start "Project Hail Mary" --json
 goodreads progress "Project Hail Mary" --page 123 --json
 goodreads progress "Project Hail Mary" --percent 10 --json
@@ -51,6 +53,7 @@ As of June 20, 2026, the project does not assume a supported modern Goodreads AP
 That means:
 
 - `goodreads login` is required before mutation commands
+- `goodreads current` also requires a saved Goodreads session because it reads the authenticated shelf view
 - login may be affected by CAPTCHA, 2FA, or Goodreads/Amazon UI changes
 - the CLI should return explicit errors when a write cannot be completed or verified
 - page/percent progress updates use Goodreads' current authenticated `user_status` write path from the web app
