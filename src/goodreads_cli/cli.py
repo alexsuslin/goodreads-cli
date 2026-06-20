@@ -22,6 +22,9 @@ def build_parser() -> argparse.ArgumentParser:
     login.add_argument("--json", action="store_true", dest="as_json")
     login.add_argument("--no-headless", action="store_true")
 
+    current = subparsers.add_parser("current", help="List books on the currently-reading shelf.")
+    current.add_argument("--json", action="store_true", dest="as_json")
+
     start = subparsers.add_parser("start", help="Mark a book as currently reading.")
     start.add_argument("book_title")
     start.add_argument("--author")
@@ -79,6 +82,8 @@ def run(argv: list[str] | None = None, *, service: GoodreadsService | None = Non
     as_json = getattr(args, "as_json", False)
     try:
         active_service = service or _default_service()
+        if args.command == "current":
+            return _emit_result(active_service.current_books(), as_json)
         if args.command == "find":
             return _emit_result(
                 active_service.find_books(args.book_title, author=args.author), as_json

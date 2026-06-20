@@ -41,6 +41,46 @@ def test_find_json_envelope(capsys) -> None:
     assert captured["data"]["query"] == "Dune"
 
 
+def test_current_json_envelope(capsys) -> None:
+    class CurrentService(FakeService):
+        def current_books(self):
+            self.calls.append(("current_books",))
+            return {
+                "shelf": "currently-reading",
+                "books": [
+                    {
+                        "id": "1",
+                        "title": "Dune",
+                        "author": "Frank Herbert",
+                        "url": "https://www.goodreads.com/book/show/1-dune",
+                        "progress": {"page": None, "percent": None},
+                    }
+                ],
+            }
+
+    service = CurrentService()
+    code = run(["current", "--json"], service=service)
+    captured = json.loads(capsys.readouterr().out)
+
+    assert code == 0
+    assert ("current_books",) in service.calls
+    assert captured == {
+        "ok": True,
+        "data": {
+            "shelf": "currently-reading",
+            "books": [
+                {
+                    "id": "1",
+                    "title": "Dune",
+                    "author": "Frank Herbert",
+                    "url": "https://www.goodreads.com/book/show/1-dune",
+                    "progress": {"page": None, "percent": None},
+                }
+            ],
+        },
+    }
+
+
 def test_progress_requires_exactly_one_of_page_or_percent(capsys) -> None:
     code = run(
         ["progress", "Dune", "--page", "12", "--percent", "3", "--json"],

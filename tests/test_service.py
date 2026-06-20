@@ -20,9 +20,14 @@ class FakeSearchClient:
 class FakeMutationClient:
     def __init__(self):
         self.calls = []
+        self.current_books_payload: list[dict[str, object]] = []
 
     def require_session(self) -> None:
         self.calls.append(("require_session",))
+
+    def current_books(self) -> list[dict[str, object]]:
+        self.calls.append(("current_books",))
+        return self.current_books_payload
 
     def add_shelf(self, book_id: str, shelf: str) -> None:
         self.calls.append(("add_shelf", book_id, shelf))
@@ -97,6 +102,41 @@ def test_start_applies_currently_reading_shelf() -> None:
 
     assert payload["status"] == "currently-reading"
     assert ("add_shelf", "1", "currently-reading") in mutation.calls
+
+
+def test_current_books_reads_currently_reading_shelf() -> None:
+    mutation = FakeMutationClient()
+    mutation.current_books_payload = [
+        {
+            "id": "1",
+            "title": "Dune",
+            "author": "Frank Herbert",
+            "url": "https://www.goodreads.com/book/show/1-dune",
+            "progress": {"page": None, "percent": None},
+        }
+    ]
+    service = GoodreadsService(
+        search_client=FakeSearchClient([]),
+        mutation_client=mutation,
+        presets={},
+    )
+
+    payload = service.current_books()
+
+    assert payload == {
+        "shelf": "currently-reading",
+        "books": [
+            {
+                "id": "1",
+                "title": "Dune",
+                "author": "Frank Herbert",
+                "url": "https://www.goodreads.com/book/show/1-dune",
+                "progress": {"page": None, "percent": None},
+            }
+        ],
+    }
+    assert ("require_session",) in mutation.calls
+    assert ("current_books",) in mutation.calls
 
 
 def test_want_applies_to_read_shelf() -> None:

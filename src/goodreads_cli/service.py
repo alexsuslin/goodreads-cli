@@ -44,6 +44,13 @@ class GoodreadsService:
             raise BookMatchAmbiguousError(f"Book match ambiguous: {title}")
         return matches[0]
 
+    def current_books(self) -> dict[str, Any]:
+        client = self._require_mutation_client()
+        return {
+            "shelf": "currently-reading",
+            "books": client.current_books(),
+        }
+
     def start(self, title: str, author: str | None = None) -> dict[str, Any]:
         book = self.resolve_book(title, author=author)
         client = self._require_mutation_client()

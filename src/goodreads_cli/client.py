@@ -78,6 +78,10 @@ class GoodreadsBrowserClient:
     def require_session(self) -> None:
         self._load_session()
 
+    def current_books(self) -> list[dict[str, Any]]:
+        storage_state = self._load_session()
+        return self.adapter.current_books(storage_state=storage_state)
+
     def add_shelf(self, book_id: str, shelf: str) -> None:
         self._run_mutation(
             "add shelf",
@@ -199,6 +203,23 @@ class PlaywrightAdapter:
             storage_state = context.storage_state()
             browser.close()
             return storage_state
+
+    def current_books(self, *, storage_state) -> list[dict[str, Any]]:
+        books: list[dict[str, Any]] = []
+
+        def read(page: Any) -> None:
+            if self._is_sign_in_page(page):
+                raise GoodreadsClientError(
+                    "Goodreads session is no longer authenticated. Run: goodreads login"
+                )
+            books.extend(self._parse_current_books(page))
+
+        self._with_authenticated_page(
+            storage_state,
+            "https://www.goodreads.com/review/list?shelf=currently-reading",
+            read,
+        )
+        return books
 
     def add_shelf(self, *, storage_state, book_id: str, shelf: str) -> None:
         self._with_book_page(storage_state, book_id, lambda page: self._apply_shelf(page, shelf))
@@ -343,6 +364,11 @@ class PlaywrightAdapter:
             mutate(page)
             page.wait_for_load_state("networkidle")
             browser.close()
+
+    @staticmethod
+    def _is_sign_in_page(page: Any) -> bool:
+        url = getattr(page, "url", "") or ""
+        return "/user/sign_in" in url or "/ap/signin" in url
 
     @staticmethod
     def _fill_login(page: Any, *, email: str, password: str) -> None:
@@ -507,3 +533,57 @@ class PlaywrightAdapter:
             "book_id": str(metadata["book_id"]),
             "jwt_token": str(metadata["jwt_token"]),
         }
+
+    def _parse_current_books(self, page: Any) -> list[dict[str, Any]]:
+        payload = page.evaluate(
+            """
+            () => {
+              const rows = Array.from(document.querySelectorAll("tr.bookalike.review"));
+              return rows.map((row) => {
+                const titleLink =
+                  row.querySelector("td.field.title a[href*='/book/show/']") ||
+                  row.querySelector("a.bookTitle[href*='/book/show/']");
+                const authorLink =
+                  row.querySelector("td.field.author a") ||
+                  row.querySelector(".authorName");
+                const href = titleLink?.getAttribute("href") || "";
+                const idMatch = href.match(/\\/book\\/show\\/(\\d+)/);
+                return {
+                  id: idMatch ? idMatch[1] : "",
+                  title: titleLink?.textContent?.trim() || "",
+                  author: authorLink?.textContent?.trim() || "",
+                  url: href.startsWith("http") ? href : `https://www.goodreads.com${href}`,
+                  progress: {
+                    page: null,
+                    percent: null,
+                  },
+                };
+              });
+            }
+            """
+        )
+        if not isinstance(payload, list):
+            raise GoodreadsClientError(
+                "Goodreads current-reading shelf could not be parsed from the shelf page."
+            )
+
+        normalized = [
+            {
+                "id": str(item.get("id") or "").strip(),
+                "title": str(item.get("title") or "").strip(),
+                "author": str(item.get("author") or "").strip(),
+                "url": str(item.get("url") or "").strip(),
+                "progress": {
+                    "page": None,
+                    "percent": None,
+                },
+            }
+            for item in payload
+            if isinstance(item, dict)
+        ]
+        valid = [item for item in normalized if item["id"] and item["title"]]
+        if payload and not valid:
+            raise GoodreadsClientError(
+                "Goodreads current-reading shelf could not be parsed from the shelf page."
+            )
+        return valid

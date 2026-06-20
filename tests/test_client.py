@@ -60,10 +60,15 @@ class FakeBrowserAdapter:
     def __init__(self):
         self.calls = []
         self.storage_state = {"cookies": [{"name": "session", "value": "abc"}], "origins": []}
+        self.current_books_payload: list[dict[str, object]] = []
 
     def login(self, *, email: str, password: str, headless: bool):
         self.calls.append(("login", email, password, headless))
         return self.storage_state
+
+    def current_books(self, *, storage_state):
+        self.calls.append(("current_books",))
+        return self.current_books_payload
 
     def add_shelf(self, *, storage_state, book_id: str, shelf: str):
         self.calls.append(("add_shelf", book_id, shelf))
@@ -164,6 +169,26 @@ def test_browser_client_wraps_unexpected_mutation_errors(tmp_path: Path) -> None
         client.add_shelf("1", "wishlist")
 
 
+def test_browser_client_reads_current_books_using_saved_session(tmp_path: Path) -> None:
+    adapter = FakeBrowserAdapter()
+    adapter.current_books_payload = [
+        {
+            "id": "1",
+            "title": "Dune",
+            "author": "Frank Herbert",
+            "url": "https://www.goodreads.com/book/show/1-dune",
+            "progress": {"page": None, "percent": None},
+        }
+    ]
+    client = GoodreadsBrowserClient(build_settings(tmp_path), adapter=adapter)
+    client.login(headless=True)
+
+    payload = client.current_books()
+
+    assert payload == adapter.current_books_payload
+    assert ("current_books",) in adapter.calls
+
+
 class FakeMetaLocator:
     def __init__(self, token: str | None):
         self.token = token
@@ -207,6 +232,15 @@ class FakeTaggingPage:
         if len(self.evaluate_calls) == 1:
             return self.metadata
         return self.response
+
+
+class FakeShelfPage:
+    def __init__(self, payload):
+        self.payload = payload
+        self.url = "https://www.goodreads.com/review/list?shelf=currently-reading"
+
+    def evaluate(self, script: str):
+        return self.payload
 
 
 def test_playwright_adapter_updates_progress_via_user_status_endpoint(monkeypatch) -> None:
@@ -286,6 +320,78 @@ def test_playwright_adapter_requires_graphql_metadata_for_tags(monkeypatch) -> N
 
     with pytest.raises(GoodreadsClientError, match="metadata"):
         adapter.add_tags(storage_state={"cookies": []}, book_id="54493401", tags=["ru"])
+
+
+def test_playwright_adapter_reads_currently_reading_shelf(monkeypatch) -> None:
+    adapter = PlaywrightAdapter()
+    visited: dict[str, str] = {}
+    page = FakeShelfPage(
+        [
+            {
+                "id": "1",
+                "title": "Dune",
+                "author": "Frank Herbert",
+                "url": "https://www.goodreads.com/book/show/1-dune",
+                "progress": {"page": None, "percent": None},
+            }
+        ]
+    )
+
+    def fake_with_authenticated_page(storage_state, url, mutate):
+        visited["url"] = url
+        mutate(page)
+
+    monkeypatch.setattr(
+        adapter,
+        "_with_authenticated_page",
+        fake_with_authenticated_page,
+        raising=False,
+    )
+
+    payload = adapter.current_books(storage_state={"cookies": []})
+
+    assert visited["url"] == "https://www.goodreads.com/review/list?shelf=currently-reading"
+    assert payload == [
+        {
+            "id": "1",
+            "title": "Dune",
+            "author": "Frank Herbert",
+            "url": "https://www.goodreads.com/book/show/1-dune",
+            "progress": {"page": None, "percent": None},
+        }
+    ]
+
+
+def test_playwright_adapter_allows_empty_current_shelf(monkeypatch) -> None:
+    adapter = PlaywrightAdapter()
+    page = FakeShelfPage([])
+
+    monkeypatch.setattr(
+        adapter,
+        "_with_authenticated_page",
+        lambda storage_state, url, mutate: mutate(page),
+        raising=False,
+    )
+
+    payload = adapter.current_books(storage_state={"cookies": []})
+
+    assert payload == []
+
+
+def test_playwright_adapter_raises_when_current_shelf_cannot_be_parsed(monkeypatch) -> None:
+    adapter = PlaywrightAdapter()
+    page = FakeShelfPage([{"title": "", "id": "", "author": "", "url": "", "progress": {}}])
+
+    monkeypatch.setattr(
+        adapter,
+        "_with_authenticated_page",
+        lambda storage_state, url, mutate: mutate(page),
+        raising=False,
+    )
+    monkeypatch.setattr(adapter, "_is_sign_in_page", lambda page: False, raising=False)
+
+    with pytest.raises(GoodreadsClientError, match="current-reading shelf"):
+        adapter.current_books(storage_state={"cookies": []})
 
 
 def test_playwright_adapter_uses_current_shelf_buttons_to_open_overlay() -> None:
