@@ -38,6 +38,7 @@ goodreads start "Project Hail Mary" --json
 goodreads progress "Project Hail Mary" --page 123 --json
 goodreads progress "Project Hail Mary" --percent 10 --json
 goodreads finish "Project Hail Mary" --rating 4 --review "Excellent." --json
+goodreads finish 54493401 --rating 4 --json
 goodreads want "Project Hail Mary" --json
 goodreads abandon "Project Hail Mary" --json
 goodreads find "Project Hail Mary" --json
@@ -131,4 +132,6 @@ python -m build
 - In Goodreads' current product model, custom shelves and tags are handled through the same tagging flow.
 - Weak fuzzy matches are rejected on purpose.
 - Strong multi-match ambiguity is rejected on purpose.
+- A numeric Goodreads book ID can be used anywhere a book title is accepted when an
+  exact edition must be targeted.
 - When adding CLI functionality, update `README.md`, `docs/agent-cli.md`, and `docs/skill.md` in the same change.
