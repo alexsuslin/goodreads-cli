@@ -37,6 +37,13 @@ class GoodreadsService:
         return {"query": title, "matches": matches}
 
     def resolve_book(self, title: str, author: str | None = None) -> dict[str, Any]:
+        if title.isdecimal():
+            return {
+                "id": title,
+                "title": "",
+                "author": "",
+                "url": f"https://www.goodreads.com/book/show/{title}",
+            }
         matches = self.find_books(title, author=author)["matches"]
         if not matches or matches[0]["score"] < self.minimum_match_score:
             raise BookNotFoundError(f"Book not found: {title}")
