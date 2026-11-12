@@ -1,5 +1,7 @@
 # AGENTS.md
 
+- For current project context and verification, read [the handoff](docs/HANDOFF.md).
+
 This repository contains a minimal Python CLI wrapper around Goodreads workflows.
 
 The primary consumer is an external agent running on a VPS. The project should stay small, predictable, and easy for an agent to call with low prompt and context cost.
