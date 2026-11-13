@@ -23,6 +23,7 @@ def clear_goodreads_env(monkeypatch: pytest.MonkeyPatch) -> None:
         "PASSWORD",
     ):
         monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv("HOME", "/tmp/goodreads-cli-test-home")
 
 
 def test_settings_accept_cli_env_aliases(

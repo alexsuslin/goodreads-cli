@@ -90,6 +90,23 @@ def test_resolve_book_rejects_strong_ambiguity() -> None:
         service.resolve_book("dune")
 
 
+def test_resolve_book_accepts_a_goodreads_book_id_without_searching() -> None:
+    service = GoodreadsService(
+        search_client=FakeSearchClient([]),
+        mutation_client=None,
+        presets={},
+    )
+
+    book = service.resolve_book("6287408")
+
+    assert book == {
+        "id": "6287408",
+        "title": "",
+        "author": "",
+        "url": "https://www.goodreads.com/book/show/6287408",
+    }
+
+
 def test_start_applies_currently_reading_shelf() -> None:
     mutation = FakeMutationClient()
     service = GoodreadsService(

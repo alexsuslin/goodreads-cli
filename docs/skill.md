@@ -7,6 +7,7 @@ This file stays as a short pointer for skill-level discovery:
 - use `goodreads current --json` when the user asks what they are currently reading
 - use `goodreads start "<Book Title>" --json` when the user says they started a book
 - use `goodreads progress "<Book Title>" --page 123 --json` or `--percent 10 --json` for updates
+- use a numeric Goodreads book ID from `goodreads current --json` in place of a title to target an exact edition
 - use `goodreads tags add "<Book Title>" tag1 tag2 --json` or `goodreads shelf add "<Book Title>" custom-tag --json` for custom Goodreads tags/shelves
 - use `goodreads ... --json` for automated calls
 - keep Goodreads transport details inside the CLI, not in prompts

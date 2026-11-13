@@ -177,7 +177,13 @@ Behavior rules:
 
 ```bash
 goodreads finish "Project Hail Mary" --rating 4 --review "Excellent." --json
+goodreads finish 54493401 --rating 4 --json
 ```
+
+Pass a numeric Goodreads book ID instead of a title when the target edition is
+already known (for example, from `goodreads current --json`). This bypasses title
+search and its ambiguity protection while still performing the normal authenticated
+mutation.
 
 ### `want`
 
@@ -250,6 +256,8 @@ Examples:
 - Prefer `--json` in automated calls.
 - Run `goodreads login` before attempting mutations.
 - If a weak or ambiguous match is returned, ask for clarification rather than forcing a risky write.
+- When the exact entry is known from `current`, use its numeric `id` for a mutation
+  rather than re-resolving a duplicate title.
 
 ## Documentation maintenance rule
 

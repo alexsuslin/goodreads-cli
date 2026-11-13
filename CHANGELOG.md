@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Added
+- numeric Goodreads book IDs are accepted as exact book targets for mutations, avoiding title/edition ambiguity
+
 ## 0.2.0 - 2026-06-21
 
 ### Added
